@@ -49,12 +49,19 @@ async def send_med_reminder(context):
         if 'days' in med and med['days'] != ['daily'] and today not in med['days']:
             logger.info(f"Medication {med_name} is not scheduled for today ({today}).")
             return
-        message = f"Time to take your {med_name}."
+        message = f"Time to take your {med_name}. 💊"
         keyboard = [[InlineKeyboardButton("Taken", callback_data=f"taken_{med_name}_{datetime.now(TIME_ZONE).date().isoformat()}")]]
         await context.bot.send_message(chat_id=USER_CHAT_ID, text=message, reply_markup=InlineKeyboardMarkup(keyboard))
         logger.info(f"Sent reminder for {med_name}.")
     else:
         logger.warning(f"Medication {med_name} not found in data.")
+
+# Reminder function for meal
+async def send_meal_reminder(context):
+    job = context.job
+    meal_type = job.name
+    logger.debug(f"Sending meal reminder for {meal_type}.")
+    await context.bot.send_message(chat_id=USER_CHAT_ID, text=f"Time for {meal_type}. 🍽️")
 
 if __name__ == '__main__':
     logger.info("Bot starting...")
