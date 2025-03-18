@@ -3,7 +3,7 @@ from datetime import datetime, time
 import pytz
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackQueryHandler
+from telegram.ext import CallbackQueryHandler, CommandHandler
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -12,7 +12,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DATA_FILE = 'data.json'
-USER_CHAT_ID = 000000000  # Replace with your user chat ID
+ADMIN_CHAT_ID = 000000000  # Replace with your admin chat ID
+USER_CHAT_ID = 000000000   # Replace with your user chat ID
 BOT_TOKEN = "your bot token from BotFather"
 TIME_ZONE = pytz.timezone('Asia/Tehran')
 
@@ -78,6 +79,22 @@ async def button_callback(update, context):
         save_data(data)
         await query.edit_message_text(text=f"You've taken {med_name} on {date_str}. Great job! 🎉")
         logger.info(f"Logged intake for {med_name} on {date_str}.")
+
+# Command handlers
+async def start(update, context):
+    logger.debug("Received /start command.")
+    await update.message.reply_text("Hi! I'm here to help you remember your meds and meals. Use /help for commands!")
+
+async def help_command(update, context):
+    logger.debug("Received /help command.")
+    message = (
+        "Here’s how I can help you, darling:\n"
+        "- /addmed <name> <time> [days] - Add a medication (e.g., /addmed PillA 10:00 Mon Wed Fri)\n"
+        "- /setmeal <type> <time> - Set meal time (e.g., /setmeal breakfast 08:00)\n"
+        "- /report - View medication logs (admin only)\n"
+        "- /myprogress - See your progress\n"
+    )
+    await update.message.reply_text(message)
 
 if __name__ == '__main__':
     logger.info("Bot starting...")
