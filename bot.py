@@ -3,6 +3,7 @@ from datetime import datetime, time
 import pytz
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -62,6 +63,21 @@ async def send_meal_reminder(context):
     meal_type = job.name
     logger.debug(f"Sending meal reminder for {meal_type}.")
     await context.bot.send_message(chat_id=USER_CHAT_ID, text=f"Time for {meal_type}. 🍽️")
+
+# callback handler
+async def button_callback(update, context):
+    query = update.callback_query
+    await query.answer()
+    data_str = query.data
+    logger.debug(f"Button pressed with data: {data_str}")
+    if data_str.startswith('taken_'):
+        _, med_name, date_str = data_str.split('_', 2)
+        date = datetime.fromisoformat(date_str).date()
+        data = load_data()
+        data['logs'].append({'med': med_name, 'date': date.isoformat(), 'taken': True})
+        save_data(data)
+        await query.edit_message_text(text=f"You've taken {med_name} on {date_str}. Great job! 🎉")
+        logger.info(f"Logged intake for {med_name} on {date_str}.")
 
 if __name__ == '__main__':
     logger.info("Bot starting...")
