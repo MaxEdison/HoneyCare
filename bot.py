@@ -3,7 +3,7 @@ from datetime import datetime, time, timedelta
 import pytz
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackQueryHandler, CommandHandler
+from telegram.ext import CallbackQueryHandler, Application, CommandHandler
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -202,5 +202,36 @@ async def my_progress(update, context):
     await update.message.reply_text(f"You’ve taken your meds for {streak} days in a row! Keep it up! 🌟")
     logger.info(f"Reported progress: {streak} days streak.")
 
+def main():
+    logger.info("Starting bot.")
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    # Add handlers
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("addmed", add_med))
+    app.add_handler(CommandHandler("setmeal", set_meal))
+    app.add_handler(CommandHandler("report", report))
+    app.add_handler(CommandHandler("myprogress", my_progress))
+    app.add_handler(CallbackQueryHandler(button_callback))
+
+    # Existing jobs
+    data = load_data()
+    for med in data['medications']:
+        h, m_val = map(int, med['time'].split(':'))
+        job_time = time(hour=h, minute=m_val, tzinfo=TIME_ZONE)
+        app.job_queue.run_daily(send_med_reminder, job_time, name=med['name'])
+        logger.debug(f"Scheduled med reminder for {med['name']} at {med['time']}.")
+    for meal_type, time_str in data['meals'].items():
+        if time_str:
+            h, m_val = map(int, time_str.split(':'))
+            job_time = time(hour=h, minute=m_val, tzinfo=TIME_ZONE)
+            app.job_queue.run_daily(send_meal_reminder, job_time, name=meal_type)
+            logger.debug(f"Scheduled meal reminder for {meal_type} at {time_str}.")
+
+    # Run!
+    logger.info("Bot is now polling.")
+    app.run_polling()
+
 if __name__ == '__main__':
-    logger.info("Bot starting...")
+    main()
