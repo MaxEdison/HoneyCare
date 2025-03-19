@@ -162,5 +162,24 @@ async def set_meal(update, context):
         logger.error(f"Error in /setmeal: {e}")
 
 
+# report command handler
+async def report(update, context):
+    logger.debug("Received /report command.")
+    if update.message.from_user.id != ADMIN_CHAT_ID:
+        await update.message.reply_text("Sorry, only my creator can see this.")
+        logger.warning("Unauthorized /report command attempted.")
+        return
+    data = load_data()
+    logs = data['logs']
+    if not logs:
+        await update.message.reply_text("No logs yet...")
+        logger.info("No logs to report.")
+        return
+    report_text = "Medication Intake Logs:\n"
+    for log in logs:
+        report_text += f"{log['date']}: {log['med']} - Taken\n"
+    await update.message.reply_text(report_text)
+    logger.info("Reported logs.")
+
 if __name__ == '__main__':
     logger.info("Bot starting...")
