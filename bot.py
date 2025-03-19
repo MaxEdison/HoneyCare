@@ -96,5 +96,36 @@ async def help_command(update, context):
     )
     await update.message.reply_text(message)
 
+# add med command handler
+async def add_med(update, context):
+    logger.debug("Received /addmed command.")
+    if update.message.from_user.id != ADMIN_CHAT_ID:
+        await update.message.reply_text("Sorry, only my creator can use this command.")
+        logger.warning("Unauthorized /addmed command attempted.")
+        return
+    try:
+        args = context.args
+        if len(args) < 2:
+            raise ValueError("Usage: /addmed <name> <time> [days]")
+        med_name = args[0]
+        time_str = args[1]
+        days = args[2:] if len(args) > 2 else ['daily']
+        from datetime import datetime
+        datetime.strptime(time_str, '%H:%M')
+        data = load_data()
+        if any(m['name'] == med_name for m in data['medications']):
+            raise ValueError("Medication name already exists.")
+        med = {'name': med_name, 'time': time_str, 'days': days}
+        data['medications'].append(med)
+        save_data(data)
+        h, m_val = map(int, time_str.split(':'))
+        job_time = time(hour=h, minute=m_val, tzinfo=TIME_ZONE)
+        context.job_queue.run_daily(send_med_reminder, job_time, name=med_name)
+        await update.message.reply_text(f"Added {med_name} at {time_str} on {', '.join(days)}.")
+        logger.info(f"Added medication {med_name} scheduled at {time_str} on {days}.")
+    except Exception as e:
+        await update.message.reply_text(f"Oops! Error: {str(e)}")
+        logger.error(f"Error in /addmed: {e}")
+
 if __name__ == '__main__':
     logger.info("Bot starting...")
