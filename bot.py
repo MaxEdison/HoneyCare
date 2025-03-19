@@ -127,5 +127,40 @@ async def add_med(update, context):
         await update.message.reply_text(f"Oops! Error: {str(e)}")
         logger.error(f"Error in /addmed: {e}")
 
+
+# set meal command handler
+async def set_meal(update, context):
+    logger.debug("Received /setmeal command.")
+    if update.message.from_user.id != ADMIN_CHAT_ID:
+        await update.message.reply_text("Sorry, only my creator can use this command.")
+        logger.warning("Unauthorized /setmeal command attempted.")
+        return
+    try:
+        args = context.args
+        if len(args) != 2:
+            raise ValueError("Usage: /setmeal <type> <time>")
+        meal_type = args[0].lower()
+        time_str = args[1]
+        if meal_type not in ['breakfast', 'lunch', 'dinner']:
+            raise ValueError("Meal type must be breakfast, lunch, or dinner.")
+        from datetime import datetime
+        datetime.strptime(time_str, '%H:%M')
+        data = load_data()
+        job_id = f"{meal_type}"
+        existing_jobs = [job for job in context.job_queue.jobs() if job.name == job_id]
+        for job in existing_jobs:
+            job.schedule_removal()
+        h, m_val = map(int, time_str.split(':'))
+        job_time = time(hour=h, minute=m_val, tzinfo=TIME_ZONE)
+        context.job_queue.run_daily(send_meal_reminder, job_time, name=meal_type)
+        data['meals'][meal_type] = time_str
+        save_data(data)
+        await update.message.reply_text(f"Set {meal_type} time to {time_str}. Yum!")
+        logger.info(f"Set meal time for {meal_type} at {time_str}.")
+    except Exception as e:
+        await update.message.reply_text(f"Oops! Error: {str(e)}")
+        logger.error(f"Error in /setmeal: {e}")
+
+
 if __name__ == '__main__':
     logger.info("Bot starting...")
