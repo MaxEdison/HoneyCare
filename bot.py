@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import pytz
 import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -180,6 +180,27 @@ async def report(update, context):
         report_text += f"{log['date']}: {log['med']} - Taken\n"
     await update.message.reply_text(report_text)
     logger.info("Reported logs.")
+
+# myprogress command handler
+async def my_progress(update, context):
+    logger.debug("Received /myprogress command.")
+    data = load_data()
+    logs = data['logs']
+    if not logs:
+        await update.message.reply_text("No progress yet. Start taking your meds!")
+        logger.info("No progress logged yet.")
+        return
+    today = datetime.now(TIME_ZONE).date()
+    streak = 0
+    current_date = today
+    while True:
+        if any(log['date'] == current_date.isoformat() for log in logs):
+            streak += 1
+            current_date -= timedelta(days=1)
+        else:
+            break
+    await update.message.reply_text(f"You’ve taken your meds for {streak} days in a row! Keep it up! 🌟")
+    logger.info(f"Reported progress: {streak} days streak.")
 
 if __name__ == '__main__':
     logger.info("Bot starting...")
